@@ -55,6 +55,7 @@ typedef struct PCB {
   double    estcpu;
 
   int       quantum_count;
+  uint32    sleep_time;
 } PCB;
 
 // Offsets of various registers from the stack pointer in the register

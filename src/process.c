@@ -226,7 +226,7 @@ ProcessSchedule ()
     if(pcb->quantum_count % 4 == 0)
         pcb->priority = calc_pcb_priority(pcb->p_nice, pcb->estcpu);
 
-    QueueInsertLast (&runQueue[(pcb->priority)/4], &pcb->l);
+    QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
 
   }
 
@@ -253,7 +253,7 @@ ProcessSchedule ()
               QueueRemove (&tmpPCB->l);
               tmpPCB->estcpu = decay_estcpu(tmpPCB->p_nice, tmpPCB->estcpu);
               tmpPCB->priority = calc_pcb_priority(tmpPCB->p_nice, tmpPCB->estcpu);
-              QueueInsertLast (&runQueue[(tmpPCB->priority)/4], &tmpPCB->l);
+              QueueInsertLast (&runQueue[(int)((tmpPCB->priority)/4)], &tmpPCB->l);
 
               occupancy[ii]--;
           }
@@ -272,7 +272,7 @@ ProcessSchedule ()
   //       highest priority queue
   if(tmpPCB == pcb){
       QueueRemove (&tmpPCB->l);
-      QueueInsertLast (&runQueue[(tmpPCB->priority)/4], &tmpPCB->l);
+      QueueInsertLast (&runQueue[(int)((tmpPCB->priority)/4)], &tmpPCB->l);
       pcb = (PCB *)((QueueFirst (&runQueue))->object);
   }
 
@@ -322,6 +322,9 @@ ProcessSuspend (PCB *suspend)
   ASSERT (suspend->flags & PROCESS_STATUS_RUNNABLE,
 	  "Trying to suspend a non-running process!\n");
   ProcessSetStatus (suspend, PROCESS_STATUS_WAITING);
+
+  suspend->sleep_time = my_timer_get(); // mgaut72
+
   QueueRemove (&suspend->l);
   QueueInsertLast (&waitQueue, &suspend->l);
 }
@@ -347,15 +350,25 @@ ProcessWakeup (PCB *wakeup)
   ASSERT (wakeup->flags & PROCESS_STATUS_WAITING,
           "Trying to wake up a non-sleeping process!\n");
   ProcessSetStatus (wakeup, PROCESS_STATUS_RUNNABLE);
+
+  int sleeptime = (int)((my_timer_get() - wakeup->sleep_time)/1000);
+
+  // sleeping for more than a second
+  if (sleeptime >= 1){
+      int load = 1;
+      wakeup->estcpu = (wakeup->estcpu)*((2 * load)/(2 * load + 1))^sleeptime;
+      wakeup->priority = calc_pcb_priority(wakeup->p_nice, wakeup->estcpu);
+  }
+
   QueueRemove (&wakeup->l);
-  QueueInsertLast (&runQueue, &wakeup->l);
+  QueueInsertLast (&runQueue[(int)(wakeup->priority/4)], &wakeup->l);
 
 }
 
 
 //----------------------------------------------------------------------
 //
-//	ProcessDestroy
+//	urocessDestroy
 //
 //	Destroy a process by setting its status to zombie and putting it
 //	on the zombie queue.  The next time the scheduler is called, this
@@ -509,6 +522,7 @@ ProcessFork (VoidFunc func, uint32 param, int p_nice, int p_info,char *name, int
   pcb->priority = PUSER;
   pcb->estcpu = 0.0;
   pcb->quantum_count = 0;
+
 
 
   //----------------------------------------------------------------------
