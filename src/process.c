@@ -57,6 +57,17 @@ static processQuantum = DLX_PROCESS_QUANTUM;
 // String listing debugging options to print out.
 char	debugstr[200];
 
+
+
+// for my_timer_get() / scheduing shit
+// mgaut72
+uint32 total_num_quanta = 0;
+
+uint32 my_timer_get(){
+    uint32 temp = total_num_quanta * 100 + total_num_quanta * 1;
+    return temp;
+}
+
 
 //----------------------------------------------------------------------
 //
@@ -181,6 +192,9 @@ ProcessSetResult (PCB * pcb, uint32 result)
 void
 ProcessSchedule ()
 {
+
+  total_num_quanta++; // mgaut72
+
   PCB           *pcb;
   int           i;
 
@@ -423,6 +437,12 @@ ProcessFork (VoidFunc func, uint32 param, int p_nice, int p_info,char *name, int
   //---------------------------------------
   // Lab3: initialized pcb member for your scheduling algorithm here
   //--------------------------------------
+
+  // mgaut72
+  pcb->p_nice = fmax(p_nice, 0.0);
+  pcb->p_info = p_info;
+  pcb->priority = PUSER;
+  pcb->estcpu = 0.0;
 
 
   //----------------------------------------------------------------------

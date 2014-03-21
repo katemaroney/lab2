@@ -47,6 +47,12 @@ typedef struct PCB {
   int		npages;		// Number of pages allocated to this process
   Link		l;		// Used for keeping PCB in queues
   // put in data used for your scheduling algorithm here
+
+  // mgaut72
+  double    p_nice;
+  double    p_info;
+  double    priority;
+  double    estcpu;
 } PCB;
 
 // Offsets of various registers from the stack pointer in the register
