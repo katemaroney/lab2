@@ -53,6 +53,8 @@ typedef struct PCB {
   double    p_info;
   double    priority;
   double    estcpu;
+
+  int       quantum_count;
 } PCB;
 
 // Offsets of various registers from the stack pointer in the register

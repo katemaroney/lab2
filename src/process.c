@@ -198,6 +198,8 @@ ProcessSchedule ()
   PCB           *pcb;
   int           i;
 
+  PCB           *tmpPCB;
+
   dbprintf ('p', "Now entering ProcessSchedule (cur=0x%x, %d ready)\n",
             currentPCB, QueueLength (&runQueue));
   // The OS exits if there's no runnable process.  This is a feature, not a
@@ -208,21 +210,81 @@ ProcessSchedule ()
     exitsim (); // NEVER RETURNS
   }
 
-  // Move the front of the queue to the end, if it is the running process.
 
+
+
+  // handle removing hte currently running process mgaut72
   pcb = (PCB *)((QueueFirst (&runQueue))->object);
   if (pcb == currentPCB)
   {
+
+    pcb->quantum_count++;
+    pcb->estcpu++;
+
     QueueRemove (&pcb->l);
-    QueueInsertLast (&runQueue, &pcb->l);
+
+    if(pcb->quantum_count % 4 == 0)
+        pcb->priority = calc_pcb_priority(pcb->p_nice, pcb->estcpu);
+
+    QueueInsertLast (&runQueue[(pcb->priority)/4], &pcb->l);
+
   }
+
+
+  // repriotize everyone with estcpu decay
+
+  if (total_num_quanta % 10 == 0)
+  {
+
+      int[NUM_OF_RUNQUEUE] occupancy;
+
+      // start at highest queue
+      int ii = 0;
+      for(ii = 0; ii<NUM_OF_RUNQUEUE; ii++)
+      {
+          occupancy[ii] = QueueLength(runQueue[ii]);
+      }
+
+      for(ii = 0; ii<NUM_OF_RUNQUEUE; ii++)
+      {
+          while(occupancy[ii] != 0)
+          {
+              tmpPCB = (PCB *)((QueueFirst (&runQueue[ii]))->object);
+              QueueRemove (&tmpPCB->l);
+              tmpPCB->estcpu = decay_estcpu(tmpPCB->p_nice, tmpPCB->estcpu);
+              tmpPCB->priority = calc_pcb_priority(tmpPCB->p_nice, tmpPCB->estcpu);
+              QueueInsertLast (&runQueue[(tmpPCB->priority)/4], &tmpPCB->l);
+
+              occupancy[ii]--;
+          }
+      }
+  }
+
+
+
+
+  tmpPCB = pcb;
 
   // Now, run the one at the head of the queue.
   pcb = (PCB *)((QueueFirst (&runQueue))->object);
+
+  // case: the process to be switched out is still the 1st process at the
+  //       highest priority queue
+  if(tmpPCB == pcb){
+      QueueRemove (&tmpPCB->l);
+      QueueInsertLast (&runQueue[(tmpPCB->priority)/4], &tmpPCB->l);
+      pcb = (PCB *)((QueueFirst (&runQueue))->object);
+  }
+
+
+
   currentPCB = pcb;
   dbprintf ('p',"About to switch to PCB 0x%x,flags=0x%x @ 0x%x\n",
             pcb, pcb->flags,
             pcb->sysStackPtr[PROCESS_STACK_IAR]);
+
+
+
 
   // Clean up zombie processes here.  This is done at interrupt time
   // because it can't be done while the process might still be running
@@ -232,6 +294,9 @@ ProcessSchedule ()
     QueueRemove (&pcb->l);
     ProcessFreeResources (pcb);
   }
+
+
+
   // Set the timer so this process gets at most a fixed quantum of time.
   TimerSet (processQuantum);
   dbprintf ('p', "Leaving ProcessSchedule (cur=0x%x)\n", currentPCB);
@@ -443,6 +508,7 @@ ProcessFork (VoidFunc func, uint32 param, int p_nice, int p_info,char *name, int
   pcb->p_info = p_info;
   pcb->priority = PUSER;
   pcb->estcpu = 0.0;
+  pcb->quantum_count = 0;
 
 
   //----------------------------------------------------------------------
@@ -923,3 +989,13 @@ void process_create(int p_nice, int p_info, char *name, ...)
   allargs[k] = allargs[k+1] = 0;
   ProcessFork(0, (uint32)allargs, p_nice,p_info,name, 1);
 }
+
+double calc_pcb_priority(p_nice, estcpu){
+    return PUSER + (estcpu/4.0) + 2 * p_nice;
+}
+
+double decay_estcpu(p_nice, estcpu){
+    int load = 1; // cause they said so
+    return (2*load)/(2*load + 1)*estcpu + p_nice;
+
+
