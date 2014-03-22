@@ -49,13 +49,15 @@ typedef struct PCB {
   // put in data used for your scheduling algorithm here
 
   // mgaut72
-  double    p_nice;
+  int       p_nice;
   double    p_info;
   double    priority;
   double    estcpu;
-
   int       quantum_count;
   uint32    sleep_time;
+  uint32    total_run_time;
+  uint32    start_run_time;
+
 } PCB;
 
 // Offsets of various registers from the stack pointer in the register
@@ -89,5 +91,9 @@ extern void	ProcessSleep ();
 extern unsigned GetCurrentPid();
 extern unsigned getpid();
 void process_create(int p_nice, int p_info,char *name, ...);
+
+double calc_pcb_priority(int p_nice, double estcpu);
+double decay_estcpu(int p_nice, double estcpu);
+PCB *getFirstProcess();
 
 #endif	/* _process_h_ */

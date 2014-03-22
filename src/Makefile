@@ -4,7 +4,7 @@
 
 CC = gcc-dlx
 AS = dlxasm
-CFLAGS = -mtraps -O3
+CFLAGS = -mtraps -O3 -I/home/cs452/spring14/dlxtools/lib/gcc-lib/dlx/2.7.2.3/include
 
 #INCS = $(wildcard *.h)
 #SRCS = $(wildcard *.c)

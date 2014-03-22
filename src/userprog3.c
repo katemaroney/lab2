@@ -139,6 +139,8 @@ main (int argc, char *argv[])
   sem_t semaphore;
   char num_str[10], semaphore_str[10];
 
+  Printf("\n\n**** argc = %d\n\n\n", argc);
+
   switch(argc)
   {
     case 2:
