@@ -200,6 +200,8 @@ ProcessSchedule ()
     PCB           *tmpPCB;
 
     int           numEmpty = 0;
+    int           pid;//katemaroney
+    double        time;
     total_num_quanta++; // mgaut72
 
     dbprintf ('p', "Now entering ProcessSchedule (cur=0x%x, %d ready)\n",
@@ -221,12 +223,17 @@ ProcessSchedule ()
     pcb = getFirstProcess();
     if (pcb == currentPCB)
     {
-
         pcb->quantum_count++;
         pcb->estcpu++;
 
         QueueRemove (&pcb->l);
-
+        if (pcb->p_info == 1){
+            pid = GetCurrentPid();
+            time = (double)pcb->total_run_time/1000;
+            printf(TIMESTRING1, pid);
+            printf(TIMESTRING2, time);
+            printf(TIMESTRING3, pid, pcb->priority);
+        }
         if(pcb->quantum_count % 4 == 0)
             pcb->priority = calc_pcb_priority(pcb->p_nice, pcb->estcpu);
 
@@ -547,7 +554,6 @@ ProcessFork (VoidFunc func, uint32 param, int p_nice, int p_info,char *name, int
     pcb->estcpu = 0.0;
     pcb->quantum_count = 0;
     pcb->total_run_time = 0;
-
 
 
     //----------------------------------------------------------------------
