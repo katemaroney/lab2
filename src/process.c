@@ -227,20 +227,21 @@ ProcessSchedule ()
         pcb->estcpu++;
 
         QueueRemove (&pcb->l);
+        if(pcb->quantum_count % 4 == 0)
+            pcb->priority = calc_pcb_priority(pcb->p_nice, pcb->estcpu);
+
+        pcb->total_run_time += my_timer_get() - pcb->start_run_time;
+
+        QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
+
         if (pcb->p_info == 1){
             pid = GetCurrentPid();
-            time = (double)pcb->total_run_time/1000;
+            time = (double)pcb->total_run_time/1000.0;
             printf(TIMESTRING1, pid);
             printf(TIMESTRING2, time);
             printf(TIMESTRING3, pid, pcb->priority);
         }
-        if(pcb->quantum_count % 4 == 0)
-            pcb->priority = calc_pcb_priority(pcb->p_nice, pcb->estcpu);
-
-        QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
-
-        pcb->total_run_time += my_timer_get() - pcb->start_run_time;
-
+ 
     }
 
 
@@ -273,9 +274,6 @@ ProcessSchedule ()
         }
     }
 
-
-
-
     tmpPCB = pcb;
 
     // Now, run the one at the head of the queue.
@@ -286,7 +284,7 @@ ProcessSchedule ()
     if(tmpPCB == pcb){
         QueueRemove (&tmpPCB->l);
         QueueInsertLast (&runQueue[(int)((tmpPCB->priority)/4)], &tmpPCB->l);
-        pcb = (PCB *)((QueueFirst (&runQueue))->object);
+        pcb = getFirstProcess();
     }
 
 
@@ -1035,13 +1033,12 @@ void process_create(int p_nice, int p_info, char *name, ...)
     ProcessFork(0, (uint32)allargs, p_nice,p_info,name, 1);
 }
 
-double calc_pcb_priority(int p_nice, double estcpu){
-    return PUSER + (estcpu/4.0) + 2 * p_nice;
+int calc_pcb_priority(int p_nice, double estcpu){
+    return PUSER + (int)(estcpu/4.0) + 2 * p_nice;
 }
 
 double decay_estcpu(int p_nice, double estcpu){
-    int load = 1; // cause they said so
-    return (2*load)/(2*load + 1)*estcpu + p_nice;
+    return (2.0/3.0)*estcpu + p_nice;
 }
 
 PCB *getFirstProcess(){

@@ -50,8 +50,8 @@ typedef struct PCB {
 
   // mgaut72
   int       p_nice;
-  double    p_info;
-  double    priority;
+  int       p_info;
+  int       priority;
   double    estcpu;
   int       quantum_count;
   uint32    sleep_time;
@@ -92,7 +92,7 @@ extern unsigned GetCurrentPid();
 extern unsigned getpid();
 void process_create(int p_nice, int p_info,char *name, ...);
 
-double calc_pcb_priority(int p_nice, double estcpu);
+int calc_pcb_priority(int p_nice, double estcpu);
 double decay_estcpu(int p_nice, double estcpu);
 PCB *getFirstProcess();
 
