@@ -234,16 +234,16 @@ ProcessSchedule ()
 
         QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
 
-        if (pcb->p_info == 1){
-            pid = GetCurrentPid();
-            time = (double)pcb->total_run_time/1000.0;
-            printf(TIMESTRING1, pid);
-            printf(TIMESTRING2, time);
-            printf(TIMESTRING3, pid, pcb->priority);
-        }
  
     }
 
+    if (pcb->p_info == 1){
+        pid = findpid(pcb);
+        time = (double)pcb->total_run_time/1000.0;
+        printf(TIMESTRING1, pid);
+        printf(TIMESTRING2, time);
+        printf(TIMESTRING3, pid, pcb->priority);
+    }
 
     // repriotize everyone with estcpu decay
 
