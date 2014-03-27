@@ -241,21 +241,39 @@ ProcessSchedule ()
     if (total_num_quanta % 10 == 0)
     {
         int occupancy[NUM_OF_RUNQUEUE];
+        int waitOccupancy;
 
         int ii = 0;
         printf("\tdecaying estcpu\n");
+        printf("\tcurrent process = %d\n", findpid(currentPCB));
+
+        // also decay wait queue
+        waitOccupancy = QueueLength(&waitQueue);
+        while(waitOccupancy != 0){
+            tmpPCB = (PCB *)((QueueFirst (&waitQueue))->object);
+            printf("\t\tdecaying process %d\n", findpid(tmpPCB));
+            QueueRemove (&tmpPCB->l);
+            tmpPCB->estcpu = decay_estcpu(tmpPCB->p_nice, tmpPCB->estcpu);
+            tmpPCB->priority = calc_pcb_priority(tmpPCB->p_nice, tmpPCB->estcpu);
+            QueueInsertLast (&waitQueue, &tmpPCB->l);
+
+            waitOccupancy--;
+        }
 
         // start at highest queue
         for(ii = 0; ii<NUM_OF_RUNQUEUE; ii++)
         {
             occupancy[ii] = QueueLength(&runQueue[ii]);
+            printf("%d, ", occupancy[ii]);
         }
+        printf("\n");
 
         for(ii = 0; ii<NUM_OF_RUNQUEUE; ii++)
         {
             while(occupancy[ii] != 0)
             {
                 tmpPCB = (PCB *)((QueueFirst (&runQueue[ii]))->object);
+                printf("\t\tdecaying process %d\n", findpid(tmpPCB));
                 QueueRemove (&tmpPCB->l);
                 tmpPCB->estcpu = decay_estcpu(tmpPCB->p_nice, tmpPCB->estcpu);
                 tmpPCB->priority = calc_pcb_priority(tmpPCB->p_nice, tmpPCB->estcpu);
