@@ -208,9 +208,6 @@ ProcessSchedule ()
     currentPCB->quantum_count++;
     currentPCB->estcpu++;
 
-    if(currentPCB->quantum_count % 4 == 0)
-        currentPCB->priority = calc_pcb_priority(currentPCB->p_nice, currentPCB->estcpu);
-
     currentPCB->total_run_time += my_timer_get() - currentPCB->start_run_time;
 
     if (currentPCB->p_info == 1){
@@ -219,6 +216,11 @@ ProcessSchedule ()
         printf(TIMESTRING1, pid);
         printf(TIMESTRING2, time);
         printf(TIMESTRING3, pid, currentPCB->priority);
+    }
+
+    if(currentPCB->quantum_count % 4 == 0){
+        printf("\trecalculating current priority\n");
+        currentPCB->priority = calc_pcb_priority(currentPCB->p_nice, currentPCB->estcpu);
     }
 
     // The OS exits if there's no runnable process.  This is a feature, not a
@@ -236,13 +238,14 @@ ProcessSchedule ()
 
 
     // repriotize everyone with estcpu decay
-
     if (total_num_quanta % 10 == 0)
     {
         int occupancy[NUM_OF_RUNQUEUE];
 
-        // start at highest queue
         int ii = 0;
+        printf("\tdecaying estcpu\n");
+
+        // start at highest queue
         for(ii = 0; ii<NUM_OF_RUNQUEUE; ii++)
         {
             occupancy[ii] = QueueLength(&runQueue[ii]);
@@ -360,13 +363,11 @@ ProcessWakeup (PCB *wakeup)
 
     // sleeping for more than a second
     if (sleeptime >= 1){
-        int load = 1;
-
         // implement pow
-        int tmpPowAcc = 1;
+        double tmpPowAcc = 1.0;
         int i = 0;
         for (i = 0; i < sleeptime; i++){
-            tmpPowAcc *= ((2 * load)/(2 * load + 1));
+            tmpPowAcc *= ((2.0)/(3.0));
         }
         wakeup->estcpu = (wakeup->estcpu)*tmpPowAcc;
 
@@ -1020,7 +1021,7 @@ void process_create(int p_nice, int p_info, char *name, ...)
 }
 
 int calc_pcb_priority(int p_nice, double estcpu){
-    return PUSER + (int)(estcpu/4.0) + 2 * p_nice;
+    return (int)(PUSER + (estcpu/4.0) + 2 * p_nice);
 }
 
 double decay_estcpu(int p_nice, double estcpu){
