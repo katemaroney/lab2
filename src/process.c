@@ -195,7 +195,6 @@ ProcessSchedule ()
     PCB           *pcb;
     int           i;
     PCB           *tmpPCB;
-    int           numEmpty = 0;
     int           pid;//katemaroney
     double        time;
 
@@ -235,18 +234,6 @@ ProcessSchedule ()
         }
     }
 
-    // Now, run the one at the head of the queue.
-    pcb = getFirstProcess();
-
-    // case: the process to be switched out is still the 1st process at the
-    //       highest priority queue
-    if(currentPCB == pcb){
-        QueueRemove (&pcb->l);
-        QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
-        pcb = getFirstProcess();
-    }
-
-
 
     // repriotize everyone with estcpu decay
 
@@ -275,6 +262,18 @@ ProcessSchedule ()
             }
         }
     }
+
+    // Now, run the one at the head of the queue.
+    pcb = getFirstProcess();
+
+    // case: the process to be switched out is still the 1st process at the
+    //       highest priority queue
+    if(currentPCB == pcb){
+        QueueRemove (&pcb->l);
+        QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
+        pcb = getFirstProcess();
+    }
+
 
     currentPCB = pcb;
     dbprintf ('p',"About to switch to PCB 0x%x,flags=0x%x @ 0x%x\n",
