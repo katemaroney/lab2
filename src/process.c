@@ -220,30 +220,34 @@ ProcessSchedule ()
     }
 
     // handle removing hte currently running process mgaut72
-    pcb = getFirstProcess();
-    if (pcb == currentPCB)
-    {
-        pcb->quantum_count++;
-        pcb->estcpu++;
+    //pcb = getFirstProcess();
+    //if (pcb == currentPCB)
+   // {
+        currentPCB->quantum_count++;
+        currentPCB->estcpu++;
 
-        QueueRemove (&pcb->l);
-        if(pcb->quantum_count % 4 == 0)
-            pcb->priority = calc_pcb_priority(pcb->p_nice, pcb->estcpu);
+      //  QueueRemove (&currentPCB->l);
+        if(currentPCB->quantum_count % 4 == 0)
+            currentPCB->priority = calc_pcb_priority(currentPCB->p_nice, currentPCB->estcpu);
 
-        pcb->total_run_time += my_timer_get() - pcb->start_run_time;
-
-        QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
+        currentPCB->total_run_time += my_timer_get() - currentPCB->start_run_time;
+         if (currentPCB->p_info == 1){
+            pid = findpid(currentPCB);
+            time = (double)currentPCB->total_run_time/1000.0;
+            printf(TIMESTRING1, pid);
+            printf(TIMESTRING2, time);
+            printf(TIMESTRING3, pid, currentPCB->priority);
+       }
+        pcb = getFirstProcess();
+        if (pcb == currentPCB){
+            QueueRemove(&currentPCB->l);
+            QueueInsertLast (&runQueue[(int)((currentPCB->priority)/4)], &currentPCB->l);
+        }
 
  
-    }
+    //}
 
-    if (pcb->p_info == 1){
-        pid = findpid(pcb);
-        time = (double)pcb->total_run_time/1000.0;
-        printf(TIMESTRING1, pid);
-        printf(TIMESTRING2, time);
-        printf(TIMESTRING3, pid, pcb->priority);
-    }
+   // }
 
     // repriotize everyone with estcpu decay
 
@@ -274,7 +278,7 @@ ProcessSchedule ()
         }
     }
 
-    tmpPCB = pcb;
+    tmpPCB = currentPCB;
 
     // Now, run the one at the head of the queue.
     pcb = getFirstProcess();
