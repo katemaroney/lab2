@@ -192,20 +192,36 @@ ProcessSetResult (PCB * pcb, uint32 result)
     void
 ProcessSchedule ()
 {
-
-
     PCB           *pcb;
     int           i;
-
     PCB           *tmpPCB;
-
     int           numEmpty = 0;
     int           pid;//katemaroney
     double        time;
+
     total_num_quanta++; // mgaut72
 
     dbprintf ('p', "Now entering ProcessSchedule (cur=0x%x, %d ready)\n",
             currentPCB, QueueLength (&runQueue));
+
+
+    // handle removing hte currently running process mgaut72
+    currentPCB->quantum_count++;
+    currentPCB->estcpu++;
+
+    if(currentPCB->quantum_count % 4 == 0)
+        currentPCB->priority = calc_pcb_priority(currentPCB->p_nice, currentPCB->estcpu);
+
+    currentPCB->total_run_time += my_timer_get() - currentPCB->start_run_time;
+
+    if (currentPCB->p_info == 1){
+        pid = findpid(currentPCB);
+        time = (double)currentPCB->total_run_time/1000.0;
+        printf(TIMESTRING1, pid);
+        printf(TIMESTRING2, time);
+        printf(TIMESTRING3, pid, currentPCB->priority);
+    }
+
     // The OS exits if there's no runnable process.  This is a feature, not a
     // bug.  An easy solution to allowing no runnable "user" processes is to
     // have an "idle" process that's simply an infinite loop.
@@ -219,41 +235,23 @@ ProcessSchedule ()
         }
     }
 
-    // handle removing hte currently running process mgaut72
-    //pcb = getFirstProcess();
-    //if (pcb == currentPCB)
-   // {
-        currentPCB->quantum_count++;
-        currentPCB->estcpu++;
+    // Now, run the one at the head of the queue.
+    pcb = getFirstProcess();
 
-      //  QueueRemove (&currentPCB->l);
-        if(currentPCB->quantum_count % 4 == 0)
-            currentPCB->priority = calc_pcb_priority(currentPCB->p_nice, currentPCB->estcpu);
-
-        currentPCB->total_run_time += my_timer_get() - currentPCB->start_run_time;
-         if (currentPCB->p_info == 1){
-            pid = findpid(currentPCB);
-            time = (double)currentPCB->total_run_time/1000.0;
-            printf(TIMESTRING1, pid);
-            printf(TIMESTRING2, time);
-            printf(TIMESTRING3, pid, currentPCB->priority);
-       }
+    // case: the process to be switched out is still the 1st process at the
+    //       highest priority queue
+    if(currentPCB == pcb){
+        QueueRemove (&pcb->l);
+        QueueInsertLast (&runQueue[(int)((pcb->priority)/4)], &pcb->l);
         pcb = getFirstProcess();
-        if (pcb == currentPCB){
-            QueueRemove(&currentPCB->l);
-            QueueInsertLast (&runQueue[(int)((currentPCB->priority)/4)], &currentPCB->l);
-        }
+    }
 
- 
-    //}
 
-   // }
 
     // repriotize everyone with estcpu decay
 
     if (total_num_quanta % 10 == 0)
     {
-
         int occupancy[NUM_OF_RUNQUEUE];
 
         // start at highest queue
@@ -277,21 +275,6 @@ ProcessSchedule ()
             }
         }
     }
-
-    tmpPCB = currentPCB;
-
-    // Now, run the one at the head of the queue.
-    pcb = getFirstProcess();
-
-    // case: the process to be switched out is still the 1st process at the
-    //       highest priority queue
-    if(tmpPCB == pcb){
-        QueueRemove (&tmpPCB->l);
-        QueueInsertLast (&runQueue[(int)((tmpPCB->priority)/4)], &tmpPCB->l);
-        pcb = getFirstProcess();
-    }
-
-
 
     currentPCB = pcb;
     dbprintf ('p',"About to switch to PCB 0x%x,flags=0x%x @ 0x%x\n",
